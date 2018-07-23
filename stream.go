@@ -16,9 +16,7 @@ import (
 	"github.com/google/gopacket/tcpassembly"
 )
 
-var verbose = flag.Bool("verbose", false, "Write lots of information out")
-
-var goRoutines sync.WaitGroup
+var StreamWG sync.WaitGroup
 
 type WriteAtCloser interface {
 	io.WriterAt
@@ -39,34 +37,14 @@ type Stream struct {
 	pending Utterance
 }
 
-type Packet struct {
-	Opcode int
-	Description string
-	When time.Time
-	Payload gapstring.GapString
-	Fields map[string]string
-}
-
-var noTime = time.Unix(0, 0)
-
-func NewPacket() Packet {
-	return Packet{
-		Opcode: -1,
-		Description: "Undefined",
-		When: noTime,
-		Payload: gapstring.GapString{},
-		Fields: map[string]string{},
-	}
-}
-
 func (f *StreamFactory) New(net, transport gopacket.Flow) tcpassembly.Stream {
 	stream := &Stream{
 		Net: net,
 		Transport: transport,
 		conversation: make(chan Utterance, 100),
 	}
-	goRoutines.Add(1)
-	go stream.run()
+	StreamWG.Add(1)
+	go stream.Run(StreamWG)
 	
 	return stream
 }
@@ -140,29 +118,18 @@ func (stream *Stream) Read(length int) (Utterance, error) {
 func (stream *Stream) Describe(pkt Packet) string {
 	out := new(strings.Builder)
 
-	fmt.Fprintf(out, "Opcode %d: %s\n", pkt.Opcode, pkt.Description)
-	fmt.Fprintf(out, "    %v:%v → %v:%v (%s)\n",
-              stream.Net.Src().String(), stream.Transport.Src().String(),
-              stream.Net.Dst().String(), stream.Transport.Dst().String(),
-              pkt.When.UTC().Format(time.RFC3339Nano))
-	keys := make([]string, len(pkt.Fields))
-	i := 0
-	for k := range(pkt.Fields) {
-		keys[i] = k
-		i += 1
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		fmt.Fprintf(out, "      %s: %s\n", k, pkt.Fields[k])
-	}
-	fmt.Fprint(out, pkt.Payload.Hexdump())
+	fmt.Fprintf(out, "%v:%v → %v:%v\n",
+		stream.Net.Src().String(), stream.Transport.Src().String(),
+    stream.Net.Dst().String(), stream.Transport.Dst().String()
+  )
+  out.writeString(pkt.Describe())
 	return out.String()
 }
 
-func (stream *Stream) run() {
-	defer goRoutines.Done()
+func (stream *Stream) Run(wg sync.WaitGroup) {
+	defer wg.Done()
 	for {
-		pkt, err := stream.buildPacket()
+		pkt, err := stream.BuildPacket()
 		if err == io.EOF {
 			return
 		} else if err != nil {
@@ -174,7 +141,7 @@ func (stream *Stream) run() {
 	}
 }
 
-func (stream *Stream) buildPacket() (Packet, error) {
+func (stream *Stream) BuildPacket() (Packet, error) {
 	pkt := NewPacket()
 	
 	utterance, err := stream.Read(-1)
@@ -185,38 +152,4 @@ func (stream *Stream) buildPacket() (Packet, error) {
 	pkt.Payload = utterance.Data
 	pkt.When = utterance.When
 	return pkt, nil
-}
-
-func main() {
-	flag.Parse()
-	
-	streamFactory := &StreamFactory{}
-	streamPool := tcpassembly.NewStreamPool(streamFactory)
-	assembler := tcpassembly.NewAssembler(streamPool)
-	
-	for _, fn := range flag.Args() {
-		handle, err := pcap.OpenOffline(fn)
-		if err != nil {
-			log.Fatal(err)
-		}
-		
-		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-		packets := packetSource.Packets()
-		npackets := 0
-		for packet := range packets {
-			if packet == nil {
-				break
-			}
-			if packet.NetworkLayer() == nil || packet.TransportLayer() == nil || packet.TransportLayer().LayerType() != layers.LayerTypeTCP {
-				log.Println("Unusable packet")
-				continue
-			}
-			tcp := packet.TransportLayer().(*layers.TCP)
-			assembler.AssembleWithTimestamp(packet.NetworkLayer().NetworkFlow(), tcp, packet.Metadata().Timestamp)
-			npackets += 1
-		}
-		log.Println("npackets", npackets)
-	}
-	assembler.FlushAll()
-	goRoutines.Wait()
 }
