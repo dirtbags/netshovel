@@ -3,6 +3,7 @@ package gapstring
 import (
 	"fmt"
 	"encoding/binary"
+	"encoding/hex"
 	"strings"
 	"unicode/utf16"
 )
@@ -193,6 +194,10 @@ func (g GapString) String(fill string) string {
 	return string(g.Bytes([]byte(fill)...))
 }
 
+func (g GapString) HexString(fill ...byte) string {
+	return hex.EncodeToString(g.Bytes(fill...))
+}
+
 var fluffych = []rune{
   '·', '☺', '☻', '♥', '♦', '♣', '♠', '•', '◘', '○', '◙', '♂', '♀', '♪', '♫', '☼',
 	'►', '◄', '↕', '‼', '¶', '§', '▬', '↨', '↑', '↓', '→', '←', '∟', '↔', '▲', '▼',
@@ -212,7 +217,7 @@ var fluffych = []rune{
 	'≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∀', '∃', '√', 'ⁿ', '²', '■', '¤',
 }
 func (g GapString) Hexdump() string {
-	var out strings.Builder
+	out := new(strings.Builder)
 	skipping := false
 	glen := g.Length()
 	pos := 0
@@ -228,7 +233,7 @@ func (g GapString) Hexdump() string {
 			}
 			if repeated {
 				if ! skipping {
-					fmt.Fprintln(&out, "*")
+					fmt.Fprintln(out, "*")
 					skipping = true
 				}
 				pos += 16
@@ -239,44 +244,44 @@ func (g GapString) Hexdump() string {
 		}
 
 		// Output offset
-		fmt.Fprintf(&out, "%08x  ", pos)
+		fmt.Fprintf(out, "%08x  ", pos)
 		
 		// Output octet values
 		for i := 0; i < 16; i += 1 {
 			if pos+i < glen {
 				c := g.ValueAt(pos+i)
 				if c == -1 {
-					fmt.Fprintf(&out, "-- ")
+					fmt.Fprintf(out, "-- ")
 				} else {
-					fmt.Fprintf(&out, "%02x ", c)
+					fmt.Fprintf(out, "%02x ", c)
 				}
 			} else {
-				fmt.Fprintf(&out, "   ")
+				fmt.Fprintf(out, "   ")
 			}
 			if i == 7 {
-				fmt.Fprintf(&out, " ")
+				fmt.Fprintf(out, " ")
 			}
 		}
 		
-		fmt.Fprintf(&out, " ")
+		fmt.Fprintf(out, " ")
 		
 		
 		// Output octet glyphs
 		for i := 0; (i < 16) && (pos < glen); {
 			c := g.ValueAt(pos)
 			if c == -1 {
-				fmt.Fprintf(&out, "�")
+				fmt.Fprintf(out, "�")
 			} else {
-				fmt.Fprintf(&out, "%c", fluffych[c])
+				fmt.Fprintf(out, "%c", fluffych[c])
 			}
 			i += 1
 			pos += 1
 		}
 		
 		// Output newline
-		fmt.Fprintln(&out, "")
+		fmt.Fprintln(out, "")
 	}
-	fmt.Fprintf(&out, "%08x\n", pos)
+	fmt.Fprintf(out, "%08x\n", pos)
 	
 	return out.String()
 }

@@ -24,7 +24,6 @@ func Shovel(factory tcpassembly.StreamFactory) {
 		
 		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 		packets := packetSource.Packets()
-		npackets := 0
 		for packet := range packets {
 			if packet == nil {
 				break
@@ -35,10 +34,7 @@ func Shovel(factory tcpassembly.StreamFactory) {
 			}
 			tcp := packet.TransportLayer().(*layers.TCP)
 			assembler.AssembleWithTimestamp(packet.NetworkLayer().NetworkFlow(), tcp, packet.Metadata().Timestamp)
-			npackets += 1
 		}
-		log.Println("npackets", npackets)
 	}
 	assembler.FlushAll()
-	StreamWG.Wait()
 }

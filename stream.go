@@ -5,14 +5,11 @@ import (
 	"io"
 	"log"
 	"strings"
-	"sync"
 	"time"
 	"github.com/dirtbags/netshovel/gapstring"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly"
 )
-
-var StreamWG sync.WaitGroup
 
 type WriteAtCloser interface {
 	io.WriterAt
@@ -24,25 +21,18 @@ type Utterance struct {
 	Data gapstring.GapString
 }
 
-type StreamFactory struct {}
-
 type Stream struct {
 	Net, Transport gopacket.Flow
 	conversation chan Utterance
-	done chan bool
 	pending Utterance
 }
 
-func (f *StreamFactory) New(net, transport gopacket.Flow) tcpassembly.Stream {
-	stream := &Stream{
+func NewStream(net, transport gopacket.Flow) Stream {
+	return Stream{
 		Net: net,
 		Transport: transport,
 		conversation: make(chan Utterance, 100),
 	}
-	StreamWG.Add(1)
-	go stream.Run(StreamWG)
-	
-	return stream
 }
 
 func (stream *Stream) Reassembled(rs []tcpassembly.Reassembly) {
@@ -120,32 +110,4 @@ func (stream *Stream) Describe(pkt Packet) string {
   )
   out.WriteString(pkt.Describe())
 	return out.String()
-}
-
-func (stream *Stream) Run(wg sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		pkt, err := stream.BuildPacket()
-		if err == io.EOF {
-			return
-		} else if err != nil {
-			log.Println(err) // XXX: Print out 4-tuple identifying this stream
-			return
-		}
-		
-		fmt.Println(stream.Describe(pkt))
-	}
-}
-
-func (stream *Stream) BuildPacket() (Packet, error) {
-	pkt := NewPacket()
-	
-	utterance, err := stream.Read(-1)
-	if err != nil {
-		return pkt, err
-	}
-	
-	pkt.Payload = utterance.Data
-	pkt.When = utterance.When
-	return pkt, nil
 }

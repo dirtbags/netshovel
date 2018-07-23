@@ -8,7 +8,10 @@ import (
 	"github.com/dirtbags/netshovel/gapstring"
 )
 
+type PacketFactory func()Packet
+
 type Packet struct {
+	Name string
 	Opcode int
 	Description string
 	When time.Time
@@ -20,6 +23,7 @@ var never = time.Unix(0, 0)
 
 func NewPacket() Packet {
 	return Packet{
+		Name: "Generic",
 		Opcode: -1,
 		Description: "Undefined",
 		When: never,
@@ -28,31 +32,15 @@ func NewPacket() Packet {
 	}
 }
 
-func (pkt *Packet) Name() string {
-	return "Generic"
-}
-
 func (pkt *Packet) Describe() string {
 	out := new(strings.Builder)
 
-	fmt.Fprintf(out, "%s %s %d: %s\n",
+	fmt.Fprintf(out, "  %s %s %d: %s\n",
 	  pkt.When.UTC().Format(time.RFC3339Nano),
-		pkt.Name(),
+		pkt.Name,
 		pkt.Opcode,
 		pkt.Description,
 	)
-	for _, k := range pkt.Keys() {
-		fmt.Fprintf(out, "      %s: %s\n", k, pkt.Fields[k])
-	}
-	fmt.Fprint(out, pkt.Payload.Hexdump())
-	return out.String()
-}
-
-func (pkt *Packet) Set(key, value string) {
-	pkt.Fields[key] = value
-}
-
-func (pkt *Packet) Keys() []string{
 	keys := make([]string, len(pkt.Fields))
 	i := 0
 	for k := range(pkt.Fields) {
@@ -60,5 +48,13 @@ func (pkt *Packet) Keys() []string{
 		i += 1
 	}
 	sort.Strings(keys)
-	return keys
+	for _, k := range keys {
+		fmt.Fprintf(out, "    %s: %s\n", k, pkt.Fields[k])
+	}
+	fmt.Fprint(out, pkt.Payload.Hexdump())
+	return out.String()
+}
+
+func (pkt *Packet) Set(key, value string) {
+	pkt.Fields[key] = value
 }
