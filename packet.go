@@ -1,19 +1,11 @@
-package main
+package netshovel
 
 import (
-	"flag"
 	"fmt"
-	"io"
-	"log"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 	"github.com/dirtbags/netshovel/gapstring"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
-	"github.com/google/gopacket/tcpassembly"
 )
 
 type Packet struct {
@@ -44,7 +36,7 @@ func (pkt *Packet) Describe() string {
 	out := new(strings.Builder)
 
 	fmt.Fprintf(out, "%s %s %d: %s\n",
-	  pkt.When.UTC().Format(tim.RFC3339Nano),
+	  pkt.When.UTC().Format(time.RFC3339Nano),
 		pkt.Name(),
 		pkt.Opcode,
 		pkt.Description,
@@ -57,10 +49,10 @@ func (pkt *Packet) Describe() string {
 }
 
 func (pkt *Packet) Set(key, value string) {
-	pkt.Fileds[key] = value
+	pkt.Fields[key] = value
 }
 
-func (pkt *Packet) Keys() {
+func (pkt *Packet) Keys() []string{
 	keys := make([]string, len(pkt.Fields))
 	i := 0
 	for k := range(pkt.Fields) {

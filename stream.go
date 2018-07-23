@@ -1,18 +1,14 @@
-package main
+package netshovel
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 	"github.com/dirtbags/netshovel/gapstring"
 	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/tcpassembly"
 )
 
@@ -120,9 +116,9 @@ func (stream *Stream) Describe(pkt Packet) string {
 
 	fmt.Fprintf(out, "%v:%v → %v:%v\n",
 		stream.Net.Src().String(), stream.Transport.Src().String(),
-    stream.Net.Dst().String(), stream.Transport.Dst().String()
+    stream.Net.Dst().String(), stream.Transport.Dst().String(),
   )
-  out.writeString(pkt.Describe())
+  out.WriteString(pkt.Describe())
 	return out.String()
 }
 

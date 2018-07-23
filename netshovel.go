@@ -1,24 +1,16 @@
-package main
+package netshovel
 
 import (
 	"flag"
-	"fmt"
-	"io"
 	"log"
-	"sort"
-	"strings"
-	"sync"
-	"time"
-	"github.com/dirtbags/netshovel/gapstring"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/tcpassembly"
 )
 
-
 func Shovel(factory tcpassembly.StreamFactory) {
-	verbose := flag.Bool("verbose", false, "Write lots of information out")
+	//verbose := flag.Bool("verbose", false, "Write lots of information out")
 	flag.Parse()
 	
 	streamPool := tcpassembly.NewStreamPool(factory)
@@ -48,5 +40,5 @@ func Shovel(factory tcpassembly.StreamFactory) {
 		log.Println("npackets", npackets)
 	}
 	assembler.FlushAll()
-	goRoutines.Wait()
+	StreamWG.Wait()
 }
