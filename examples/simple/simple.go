@@ -6,13 +6,11 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"time"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly"
 	"github.com/dirtbags/netshovel"
 )
 
-var threads int
 var wg sync.WaitGroup
 
 type SimpleStreamFactory struct {
@@ -36,9 +34,8 @@ func (f *SimpleStreamFactory) New(net, transport gopacket.Flow) tcpassembly.Stre
 	stream := &SimpleStream{
 		Stream: netshovel.NewStream(net, transport),
 	}
-	threads += 1
 	wg.Add(1)
-	go stream.Decode(wg)
+	go stream.Decode(&wg)
 
 	return stream
 }
@@ -54,7 +51,7 @@ func (stream SimpleStream) Display(pkt SimplePacket) {
   fmt.Println(out.String())
 }
 
-func (stream SimpleStream) Decode(wg sync.WaitGroup) {
+func (stream SimpleStream) Decode(wg *sync.WaitGroup) {
 	for {
 		pkt := NewSimplePacket()
 		
@@ -71,17 +68,10 @@ func (stream SimpleStream) Decode(wg sync.WaitGroup) {
 		pkt.When = utterance.When
 		stream.Display(pkt)
 	}
-	threads -= 1
 	wg.Done()
 }
 
 func main() {
-	threads = 0
 	netshovel.Shovel(&SimpleStreamFactory{})
-
-	// XXX: ZOMG WHY
-	for threads > 0 {
-		time.Sleep(100 * time.Millisecond)
-	}
-	//wg.Wait()
+	wg.Wait()
 }
