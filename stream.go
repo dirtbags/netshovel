@@ -3,7 +3,8 @@ package netshovel
 import (
 	"fmt"
 	"io"
-	"log"
+	"os"
+	"net/url"
 	"strings"
 	"time"
 	"github.com/dirtbags/netshovel/gapstring"
@@ -11,9 +12,9 @@ import (
 	"github.com/google/gopacket/tcpassembly"
 )
 
-type WriteAtCloser interface {
-	io.WriterAt
-	io.WriteCloser
+type NamedFile struct {
+	*os.File
+	Name string
 }
 
 type Utterance struct {
@@ -58,10 +59,6 @@ func (stream *Stream) ReassemblyComplete() {
 }
 
 func (stream *Stream) Read(length int) (Utterance, error) {
-	if length > 0x100000 {
-		log.Fatalf("FATAL: Trying to read 0x%x octets", length)
-	}
-
 	// Special case: length=-1 means "give me the next utterance"
 	if length == -1 {
 		if stream.pending.Data.Length() > 0 {
@@ -110,4 +107,20 @@ func (stream *Stream) Describe(pkt Packet) string {
   )
   out.WriteString(pkt.Describe())
 	return out.String()
+}
+
+func (stream *Stream) CreateFile(when time.Time, path string) (NamedFile, error) {
+  name := fmt.Sprintf(
+		"xfer/%s,%sp%s,%sp%s,%s",
+		when.UTC().Format(time.RFC3339Nano),
+		stream.Net.Src().String(), stream.Transport.Src().String(),
+    stream.Net.Dst().String(), stream.Transport.Dst().String(),
+		url.PathEscape(path),
+	)
+  f, err := os.Create(name)
+  outf := NamedFile{
+  	File: f,
+  	Name: name,
+  }
+  return outf, err
 }

@@ -1,9 +1,9 @@
 package gapstring
 
 import (
+	"bytes"
 	"fmt"
 	"encoding/binary"
-	"encoding/hex"
 	"strings"
 	"unicode/utf16"
 )
@@ -194,8 +194,25 @@ func (g GapString) String(fill string) string {
 	return string(g.Bytes([]byte(fill)...))
 }
 
-func (g GapString) HexString(fill ...byte) string {
-	return hex.EncodeToString(g.Bytes(fill...))
+func (g GapString) HexString() string {
+	out := new(strings.Builder)
+	glen := g.Length()
+	for i := 0; i < glen; i += 1 {
+		c := g.ValueAt(i)
+		if c == -1 {
+			out.WriteString("--")
+		} else {
+			// There's probably a faster way to do this. Do we care?
+			fmt.Fprintf(out, "%02x", c)
+		}
+		if i + 1 < glen {
+			out.WriteRune(' ')
+			if i % 8 == 7 {
+				out.WriteRune(' ')
+			}
+		}
+	}
+	return out.String()
 }
 
 var fluffych = []rune{
@@ -216,70 +233,47 @@ var fluffych = []rune{
 	'α', 'ß', 'Γ', 'π', 'Σ', 'σ', 'µ', 'τ', 'Φ', 'Θ', 'Ω', 'δ', '∞', 'φ', 'ε', '∩',
 	'≡', '±', '≥', '≤', '⌠', '⌡', '÷', '≈', '°', '∀', '∃', '√', 'ⁿ', '²', '■', '¤',
 }
+func (g GapString) Runes() string {
+	out := new(strings.Builder)
+	glen := g.Length()
+	for i := 0; i < glen; i += 1 {
+		c := g.ValueAt(i)
+		if c == -1 {
+			out.WriteRune('�')
+		} else {
+			out.WriteRune(fluffych[c])
+		}
+	}
+	return out.String()
+}
+
 func (g GapString) Hexdump() string {
 	out := new(strings.Builder)
 	skipping := false
 	glen := g.Length()
 	pos := 0
+	prev := []byte{}
 	for ; pos < glen; {
 		// Check for repeats
-		repeated := true
-		if (pos > 0) {
-			for i := 0; (i < 16) && (pos+i < glen); i += 1 {
-				if g.ValueAt(pos+i) != g.ValueAt(pos+i-16) {
-					repeated = false
-					break
-				}
+		end := pos + 16
+		if end > glen {
+			end = glen
+		}
+		cur := g.Slice(pos, end)
+		curBytes := cur.Bytes()
+		if 0 == bytes.Compare(prev, curBytes) {
+			if ! skipping {
+				fmt.Fprintln(out, "*")
+				skipping = true
 			}
-			if repeated {
-				if ! skipping {
-					fmt.Fprintln(out, "*")
-					skipping = true
-				}
-				pos += 16
-				continue
-			} else {
-				skipping = false
-			}
+			continue
 		}
 
-		// Output offset
 		fmt.Fprintf(out, "%08x  ", pos)
-		
-		// Output octet values
-		for i := 0; i < 16; i += 1 {
-			if pos+i < glen {
-				c := g.ValueAt(pos+i)
-				if c == -1 {
-					fmt.Fprintf(out, "-- ")
-				} else {
-					fmt.Fprintf(out, "%02x ", c)
-				}
-			} else {
-				fmt.Fprintf(out, "   ")
-			}
-			if i == 7 {
-				fmt.Fprintf(out, " ")
-			}
-		}
-		
-		fmt.Fprintf(out, " ")
-		
-		
-		// Output octet glyphs
-		for i := 0; (i < 16) && (pos < glen); {
-			c := g.ValueAt(pos)
-			if c == -1 {
-				fmt.Fprintf(out, "�")
-			} else {
-				fmt.Fprintf(out, "%c", fluffych[c])
-			}
-			i += 1
-			pos += 1
-		}
-		
-		// Output newline
-		fmt.Fprintln(out, "")
+		fmt.Fprintf(out, "%-50s", cur.HexString())
+		fmt.Fprintln(out, cur.Runes())
+
+		pos += cur.Length()
 	}
 	fmt.Fprintf(out, "%08x\n", pos)
 	
