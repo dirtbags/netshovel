@@ -1,3 +1,15 @@
+/*
+package netshovel/gapstring provides a GapString type,
+which represents a byte array with gaps: holes with no data.
+This is used by netshovel to represent
+captured data streams with drops.
+
+Gaps are represented efficiently,
+both in memory and in computation.
+Several convenience functions exist
+which operate on GapString data,
+while preserving the gaps.
+*/
 package gapstring
 
 import (
@@ -41,13 +53,6 @@ func (c chunk) slice(a, b int) chunk {
 }
 
 // A GapString is a string with gaps of no data in the middle
-//
-// Gaps are represented efficiently,
-// both in memory and in computation.
-//
-// Several convenience functions exist
-// which operate on GapString data,
-// while preserving the Gaps.
 type GapString struct {
 	chunks []chunk
 }
