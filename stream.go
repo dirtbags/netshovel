@@ -37,7 +37,6 @@ func NewStream(net, transport gopacket.Flow) Stream {
 }
 
 func (stream *Stream) Reassembled(rs []tcpassembly.Reassembly) {
-	// XXX: How do we send timestamps?
 	ret := Utterance{
 		When: rs[0].Seen,
 	}
@@ -59,19 +58,26 @@ func (stream *Stream) ReassemblyComplete() {
 }
 
 func (stream *Stream) Read(length int) (Utterance, error) {
+	// This probably indicates a problem, but we assume you know what you're doing
+	if length == 0 {
+		return Utterance{}, nil
+	}
+	
 	// Special case: length=-1 means "give me the next utterance"
 	if length == -1 {
+		var ret Utterance
+		var err error = nil
 		if stream.pending.Data.Length() > 0 {
-			ret := stream.pending
+			ret = stream.pending
 			stream.pending.Data = gapstring.GapString{}
-			return ret, nil
 		} else {
-			ret, more := <- stream.conversation
+			r, more := <- stream.conversation
 			if ! more {
-				return ret, io.EOF
+				err = io.EOF
 			}
-			return ret, nil
+			ret = r
 		}
+		return ret, err
 	}
 
 	// Pull in utterances until we have enough data.
