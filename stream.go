@@ -2,14 +2,14 @@ package netshovel
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"net/url"
-	"strings"
-	"time"
 	"github.com/dirtbags/netshovel/gapstring"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/tcpassembly"
+	"io"
+	"net/url"
+	"os"
+	"strings"
+	"time"
 )
 
 // A File and the path where it lives
@@ -34,8 +34,8 @@ type Utterance struct {
 // A Stream is one half of a two-way conversation
 type Stream struct {
 	Net, Transport gopacket.Flow
-	conversation chan Utterance
-	pending Utterance
+	conversation   chan Utterance
+	pending        Utterance
 }
 
 // Return a newly-built Stream
@@ -44,8 +44,8 @@ type Stream struct {
 // Use this to initialize the internal stuff netshovel needs.
 func NewStream(net, transport gopacket.Flow) Stream {
 	return Stream{
-		Net: net,
-		Transport: transport,
+		Net:          net,
+		Transport:    transport,
 		conversation: make(chan Utterance, 100),
 	}
 }
@@ -61,7 +61,7 @@ func (stream *Stream) Reassembled(rs []tcpassembly.Reassembly) {
 		}
 		ret.Data = ret.Data.AppendBytes(r.Bytes)
 	}
-	
+
 	// Throw away utterances with no data (SYN, ACK, FIN, &c)
 	if ret.Data.Length() > 0 {
 		stream.conversation <- ret
@@ -90,7 +90,7 @@ func (stream *Stream) Read(length int) (Utterance, error) {
 	if length == 0 {
 		return Utterance{}, nil
 	}
-	
+
 	// Special case: length=-1 means "give me the next utterance"
 	if length == -1 {
 		var ret Utterance
@@ -99,8 +99,8 @@ func (stream *Stream) Read(length int) (Utterance, error) {
 			ret = stream.pending
 			stream.pending.Data = gapstring.GapString{}
 		} else {
-			r, more := <- stream.conversation
-			if ! more {
+			r, more := <-stream.conversation
+			if !more {
 				err = io.EOF
 			}
 			ret = r
@@ -111,8 +111,8 @@ func (stream *Stream) Read(length int) (Utterance, error) {
 	// Pull in utterances until we have enough data.
 	// .When will always be the timestamp on the last received utterance
 	for stream.pending.Data.Length() < length {
-		u, more := <- stream.conversation
-		if ! more {
+		u, more := <-stream.conversation
+		if !more {
 			break
 		}
 		stream.pending.Data = stream.pending.Data.Append(u.Data)
@@ -124,7 +124,7 @@ func (stream *Stream) Read(length int) (Utterance, error) {
 	if pendingLen == 0 {
 		return Utterance{}, io.EOF
 	}
-	
+
 	sliceLen := length
 	if sliceLen > pendingLen {
 		sliceLen = pendingLen
@@ -145,9 +145,9 @@ func (stream *Stream) Describe(pkt Packet) string {
 
 	fmt.Fprintf(out, "%v:%v → %v:%v\n",
 		stream.Net.Src().String(), stream.Transport.Src().String(),
-    stream.Net.Dst().String(), stream.Transport.Dst().String(),
-  )
-  out.WriteString(pkt.Describe())
+		stream.Net.Dst().String(), stream.Transport.Dst().String(),
+	)
+	out.WriteString(pkt.Describe())
 	return out.String()
 }
 
@@ -160,17 +160,17 @@ func (stream *Stream) Describe(pkt Packet) string {
 // Best practice is to pass in as full a path as you can find,
 // including drive letters and all parent directories.
 func (stream *Stream) CreateFile(when time.Time, path string) (NamedFile, error) {
-  name := fmt.Sprintf(
+	name := fmt.Sprintf(
 		"xfer/%s,%sp%s,%sp%s,%s",
 		when.UTC().Format(time.RFC3339Nano),
 		stream.Net.Src().String(), stream.Transport.Src().String(),
-    stream.Net.Dst().String(), stream.Transport.Dst().String(),
+		stream.Net.Dst().String(), stream.Transport.Dst().String(),
 		url.PathEscape(path),
 	)
-  f, err := os.Create(name)
-  outf := NamedFile{
-  	File: f,
-  	Name: name,
-  }
-  return outf, err
+	f, err := os.Create(name)
+	outf := NamedFile{
+		File: f,
+		Name: name,
+	}
+	return outf, err
 }

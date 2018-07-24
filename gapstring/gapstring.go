@@ -14,8 +14,8 @@ package gapstring
 
 import (
 	"bytes"
-	"fmt"
 	"encoding/binary"
+	"fmt"
 	"strings"
 	"unicode/utf16"
 )
@@ -25,7 +25,7 @@ import (
 // XXX: I'll have to fix it later; it doesn't matter much for performance
 
 type chunk struct {
-	gap int // This takes precedence over data
+	gap  int // This takes precedence over data
 	data []byte
 }
 
@@ -135,11 +135,11 @@ func (g GapString) AppendString(s string) GapString {
 // if g were a string or byte slice.
 func (g GapString) Slice(start, end int) GapString {
 	outchunks := make([]chunk, 0, len(g.chunks))
-	
+
 	if end > g.Length() {
 		panic("runtime error: slice bounds out of range")
 	}
-	
+
 	for _, c := range g.chunks {
 		chunklen := c.length()
 
@@ -160,12 +160,12 @@ func (g GapString) Slice(start, end int) GapString {
 		}
 		start = 0
 		end -= cend
-		
+
 		if end == 0 {
 			break
 		}
 	}
-	
+
 	return GapString{chunks: outchunks}
 }
 
@@ -177,7 +177,7 @@ func (g GapString) Xor(mask ...byte) GapString {
 	pos := 0
 	for _, c := range g.chunks {
 		ret = ret.AppendGap(c.gap)
-		
+
 		out := make([]byte, len(c.data))
 		for i, b := range c.data {
 			m := mask[(pos+i)%len(mask)]
@@ -198,7 +198,7 @@ func (g GapString) Bytes(fill ...byte) []byte {
 		// Fill in gap
 		if len(fill) > 0 {
 			for i := 0; i < c.gap; i += 1 {
-				ret[pos] = fill[pos % len(fill)]
+				ret[pos] = fill[pos%len(fill)]
 				pos += 1
 			}
 		}
@@ -243,9 +243,9 @@ func (g GapString) HexString() string {
 			// There's probably a faster way to do this. Do we care?
 			fmt.Fprintf(out, "%02x", c)
 		}
-		if i + 1 < glen {
+		if i+1 < glen {
 			out.WriteRune(' ')
-			if i % 8 == 7 {
+			if i%8 == 7 {
 				out.WriteRune(' ')
 			}
 		}
@@ -254,7 +254,7 @@ func (g GapString) HexString() string {
 }
 
 var fluffych = []rune{
-  '·', '☺', '☻', '♥', '♦', '♣', '♠', '•', '◘', '○', '◙', '♂', '♀', '♪', '♫', '☼',
+	'·', '☺', '☻', '♥', '♦', '♣', '♠', '•', '◘', '○', '◙', '♂', '♀', '♪', '♫', '☼',
 	'►', '◄', '↕', '‼', '¶', '§', '▬', '↨', '↑', '↓', '→', '←', '∟', '↔', '▲', '▼',
 	' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/',
 	'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?',
@@ -298,7 +298,7 @@ func (g GapString) Hexdump() string {
 	glen := g.Length()
 	pos := 0
 	prev := []byte{}
-	for ; pos < glen; {
+	for pos < glen {
 		// Check for repeats
 		end := pos + 16
 		if end > glen {
@@ -307,7 +307,7 @@ func (g GapString) Hexdump() string {
 		cur := g.Slice(pos, end)
 		curBytes := cur.Bytes()
 		if 0 == bytes.Compare(prev, curBytes) {
-			if ! skipping {
+			if !skipping {
 				fmt.Fprintln(out, "*")
 				skipping = true
 			}
@@ -321,7 +321,7 @@ func (g GapString) Hexdump() string {
 		pos += cur.Length()
 	}
 	fmt.Fprintf(out, "%08x\n", pos)
-	
+
 	return out.String()
 }
 
@@ -343,7 +343,7 @@ func (g GapString) Uint16LE() (uint16, GapString) {
 func (g GapString) Utf16(order binary.ByteOrder, fill string) string {
 	in := g.Bytes([]byte(fill)...)
 	ints := make([]uint16, len(in)/2)
-	
+
 	for i := 0; i < len(in); i += 2 {
 		ints[i/2] = order.Uint16(in[i:])
 	}
@@ -361,4 +361,3 @@ func (g GapString) Utf16LE(gap string) string {
 func (g GapString) Utf16BE(gap string) string {
 	return g.Utf16(binary.BigEndian, gap)
 }
-

@@ -4,16 +4,17 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/dirtbags/netshovel/gapstring"
 	"strings"
 	"time"
-	"github.com/dirtbags/netshovel/gapstring"
 )
 
 // Error returned by convenience methods that are unable to get enough data
 type ShortError struct {
-	Wanted int // How many bytes you needed
+	Wanted    int // How many bytes you needed
 	Available int // How many bytes were available
 }
+
 func (e *ShortError) Error() string {
 	return fmt.Sprintf("Short read: wanted %d of %d available", e.wanted, e.available)
 }
@@ -21,6 +22,7 @@ func (e *ShortError) Error() string {
 // Error returned by convenience methods that are unable to operate on gaps in data
 type MissingError struct {
 }
+
 func (e *MissingError) Error() string {
 	return "Operation on missing bytes"
 }
@@ -32,8 +34,8 @@ type namedField struct {
 
 // An application protocol header field
 type headerField struct {
-	name string
-	bits int
+	name  string
+	bits  int
 	value interface{}
 	order binary.ByteOrder
 }
@@ -46,12 +48,12 @@ type headerField struct {
 // and
 // documenting header structure.
 type Packet struct {
-	Opcode int
+	Opcode      int
 	Description string
-	When time.Time
-	Payload gapstring.GapString
-	header []headerField
-	fields []namedField
+	When        time.Time
+	Payload     gapstring.GapString
+	header      []headerField
+	fields      []namedField
 }
 
 var never = time.Unix(0, 0)
@@ -59,12 +61,12 @@ var never = time.Unix(0, 0)
 // Return a new packet
 func NewPacket() Packet {
 	return Packet{
-		Opcode: -1,
+		Opcode:      -1,
 		Description: "Undefined",
-		When: never,
-		Payload: gapstring.GapString{},
-		header: []headerField{},
-		fields: []namedField{},
+		When:        never,
+		Payload:     gapstring.GapString{},
+		header:      []headerField{},
+		fields:      []namedField{},
 	}
 }
 
@@ -76,12 +78,12 @@ func (pkt *Packet) Describe() string {
 	out := new(strings.Builder)
 
 	fmt.Fprintf(out, "  %s Opcode %d: %s\n",
-	  pkt.When.UTC().Format(time.RFC3339Nano),
+		pkt.When.UTC().Format(time.RFC3339Nano),
 		pkt.Opcode,
 		pkt.Description,
 	)
-	
-	for _, f := range(pkt.Fields) {
+
+	for _, f := range pkt.Fields {
 		fmt.Fprintf(out, "    %s: %s\n", f.key, f.value)
 	}
 	fmt.Fprint(out, pkt.Payload.Hexdump())
@@ -145,8 +147,8 @@ func (pkt *Packet) Peel(octets int) ([]byte, error) {
 // Add a field to the header field description
 func (pkt *Packet) AddHeaderField(order binary.ByteOrder, name string, bits int, value interface{}) {
 	h := headerField{
-		name: name,
-		bits: bits,
+		name:  name,
+		bits:  bits,
 		value: value,
 		order: order,
 	}
@@ -161,28 +163,28 @@ func (pkt *Packet) readUint(order binary.ByteOrder, bits int, name string) (inte
 	case 32:
 	case 64:
 	default:
-	  return 0, fmt.Errorf("Weird number of bits: %d", bits)
+		return 0, fmt.Errorf("Weird number of bits: %d", bits)
 	}
-	
+
 	octets := bits >> 3
 	b, err := pkt.Peel(octets)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	var value interface{}
 	switch bits {
 	case 8:
-	  value = b[0]
+		value = b[0]
 	case 16:
 		value = order.Uint16(b)
 	case 32:
-	  value = order.Uint32(b)
+		value = order.Uint32(b)
 	case 64:
-	  value = order.Uint64(b)
+		value = order.Uint64(b)
 	}
 	pkt.AddheaderField(order, name, bits, value)
-	
+
 	return value, nil
 }
 
@@ -248,4 +250,3 @@ func (pkt *Packet) Uint8(name string) (uint8, error) {
 	}
 	return value.(uint8), err
 }
-
