@@ -16,7 +16,7 @@ type ShortError struct {
 }
 
 func (e *ShortError) Error() string {
-	return fmt.Sprintf("Short read: wanted %d of %d available", e.wanted, e.available)
+	return fmt.Sprintf("Short read: wanted %d of %d available", e.Wanted, e.Available)
 }
 
 // Error returned by convenience methods that are unable to operate on gaps in data
@@ -83,7 +83,7 @@ func (pkt *Packet) Describe() string {
 		pkt.Description,
 	)
 
-	for _, f := range pkt.Fields {
+	for _, f := range pkt.fields {
 		fmt.Fprintf(out, "    %s: %s\n", f.key, f.value)
 	}
 	fmt.Fprint(out, pkt.Payload.Hexdump())
@@ -183,7 +183,7 @@ func (pkt *Packet) readUint(order binary.ByteOrder, bits int, name string) (inte
 	case 64:
 		value = order.Uint64(b)
 	}
-	pkt.AddheaderField(order, name, bits, value)
+	pkt.AddHeaderField(order, name, bits, value)
 
 	return value, nil
 }
