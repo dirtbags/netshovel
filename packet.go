@@ -162,36 +162,57 @@ func (pkt *Packet) readUint(order binary.ByteOrder, bits int, name string) (inte
 
 func (pkt *Packet) Uint64LE(name string) (uint64, error) {
 	value, err := pkt.readUint(binary.LittleEndian, 64, name)
+	if err != nil {
+		return 0, err
+	}
 	return value.(uint64), err
 }
 
 func (pkt *Packet) Uint32LE(name string) (uint32, error) {
 	value, err := pkt.readUint(binary.LittleEndian, 32, name)
+	if err != nil {
+		return 0, err
+	}
 	return value.(uint32), err
 }
 
 func (pkt *Packet) Uint16LE(name string) (uint16, error) {
 	value, err := pkt.readUint(binary.LittleEndian, 16, name)
+	if err != nil {
+		return 0, err
+	}
 	return value.(uint16), err
 }
 
 func (pkt *Packet) Uint64BE(name string) (uint64, error) {
 	value, err := pkt.readUint(binary.BigEndian, 64, name)
+	if err != nil {
+		return 0, err
+	}
 	return value.(uint64), err
 }
 
 func (pkt *Packet) Uint32BE(name string) (uint32, error) {
 	value, err := pkt.readUint(binary.BigEndian, 32, name)
+	if err != nil {
+		return 0, err
+	}
 	return value.(uint32), err
 }
 
 func (pkt *Packet) Uint16BE(name string) (uint16, error) {
 	value, err := pkt.readUint(binary.BigEndian, 16, name)
+	if err != nil {
+		return 0, err
+	}
 	return value.(uint16), err
 }
 
 func (pkt *Packet) Uint8(name string) (uint8, error) {
 	value, err := pkt.readUint(binary.BigEndian, 8, name)
+	if err != nil {
+		return 0, err
+	}
 	return value.(uint8), err
 }
 
