@@ -85,16 +85,21 @@ func (stream *Stream) Read(length int) (Utterance, error) {
 		stream.pending.When = u.When
 	}
 
+	pendingLen := stream.pending.Data.Length()
 	// If we got nothing, it's the end of the stream
-	if stream.pending.Data.Length() == 0 {
+	if pendingLen == 0 {
 		return Utterance{}, io.EOF
 	}
 	
+	sliceLen := length
+	if sliceLen > pendingLen {
+		sliceLen = pendingLen
+	}
 	ret := Utterance{
-		Data: stream.pending.Data.Slice(0, length),
+		Data: stream.pending.Data.Slice(0, sliceLen),
 		When: stream.pending.When,
 	}
-	stream.pending.Data = stream.pending.Data.Slice(length, stream.pending.Data.Length())
+	stream.pending.Data = stream.pending.Data.Slice(sliceLen, pendingLen)
 	return ret, nil
 }
 
