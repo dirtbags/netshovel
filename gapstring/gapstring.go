@@ -280,20 +280,13 @@ func (g GapString) Hexdump() string {
 	return out.String()
 }
 
-func (g GapString) Uint32LE() (uint32, GapString) {
-	return binary.LittleEndian.Uint32(g.Slice(0, 4).Bytes()), g.Slice(4, g.Length())
-}
-
-func (g GapString) Uint16LE() (uint16, GapString) {
-	return binary.LittleEndian.Uint16(g.Slice(0, 2).Bytes()), g.Slice(2, g.Length())
-}
-
-func (g GapString) Utf16(o binary.ByteOrder, fill string) string {
+// XXX: These should probably move to Packet
+func (g GapString) Utf16(order binary.ByteOrder, fill string) string {
 	in := g.Bytes([]byte(fill)...)
 	ints := make([]uint16, len(in)/2)
 	
 	for i := 0; i < len(in); i += 2 {
-		ints[i/2] = o.Uint16(in[i:])
+		ints[i/2] = order.Uint16(in[i:])
 	}
 	return string(utf16.Decode(ints))
 }
