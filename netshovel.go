@@ -9,6 +9,11 @@ import (
 	"github.com/google/gopacket/tcpassembly"
 )
 
+// Mainloop to handle dispatching of PCAP files from command line
+//
+// This parses the command line arguments,
+// and for each PCAP file specified on the command line,
+// invokes a TCP assembler that sends streams to whatever is returned from factory.
 func Shovel(factory tcpassembly.StreamFactory) {
 	//verbose := flag.Bool("verbose", false, "Write lots of information out")
 	flag.Parse()
@@ -29,7 +34,6 @@ func Shovel(factory tcpassembly.StreamFactory) {
 				break
 			}
 			if packet.NetworkLayer() == nil || packet.TransportLayer() == nil || packet.TransportLayer().LayerType() != layers.LayerTypeTCP {
-				log.Println("Unusable packet")
 				continue
 			}
 			tcp := packet.TransportLayer().(*layers.TCP)

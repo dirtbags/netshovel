@@ -11,7 +11,8 @@ import (
 
 // Error returned by convenience methods that are unable to get enough data
 type ShortError struct {
-	wanted, available int
+	Wanted int // How many bytes you needed
+	Available int // How many bytes were available
 }
 func (e *ShortError) Error() string {
 	return fmt.Sprintf("Short read: wanted %d of %d available", e.wanted, e.available)
