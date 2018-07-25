@@ -12,8 +12,14 @@ and room to grow these explorations into full-blown decoders.
 Get going
 =========
 
-Documentation sucks, sorry.
-Start with `examples/simple` and build it up into whatever you want.
+Package documentation at
+https://godoc.org/github.com/dirtbags/netshovel
+
+We recommend you
+copy `examples/simple/simple.go`,
+change the `Simple` structs into your own protocol,
+and build it up into whatever you want.
+
 
 
 The Future
