@@ -70,22 +70,81 @@ func NewPacket() Packet {
 	}
 }
 
-// Return a multi-line string describing this packet
-//
-// This shows the timestamp, opcode, description, and hex dump.
-// If you set any values, those are displayed in the order they were set.
-func (pkt *Packet) Describe() string {
-	out := new(strings.Builder)
-
-	fmt.Fprintf(out, "  %s Opcode %d: %s\n",
+// Return a string with timestamp, opcode, and description of this packet
+func (pkt *Packet) DescribeType() string {
+	return fmt.Sprintf(
+		"  %s Opcode %d: %s",
 		pkt.When.UTC().Format(time.RFC3339Nano),
 		pkt.Opcode,
 		pkt.Description,
 	)
+}
 
+// Return a multi-line string describing fields in this packet
+func (pkt *Packet) DescribeFields() string {
+	out := new(strings.Builder)
 	for _, f := range pkt.fields {
 		fmt.Fprintf(out, "    %s: %s\n", f.key, f.value)
 	}
+	return out.String()
+}
+
+func center(s string, w int) string {
+	if len(s) > w {
+		s = s[0:w-3] + "…"
+	}
+	return fmt.Sprintf("%*s", -w, fmt.Sprintf("%*s", (w+len(s))/2, s))
+}
+
+// Return a multi-line string describing this packet's header structure
+func (pkt *Packet) DescribeHeader() string {
+	out := new(strings.Builder)
+	fmt.Fprintln(out, " 0                               1                            ")
+	fmt.Fprintln(out, " 0 1 2 3 4 5 6 7 8 9 a b c d e f 0 1 2 3 4 5 6 7 8 9 a b c d e f")
+
+	bitOffset := 0
+	for _, f := range pkt.header {
+		bits := f.bits
+		for bits > 0 {
+			if bitOffset == 0 {
+				fmt.Fprintln(out, "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
+			}
+
+			linebits := bits
+			if linebits+bitOffset > 0x20 {
+				linebits = 0x20 - bitOffset
+			}
+
+			// Generate centered string
+			// TODO: right-align value, center name
+			nameval := fmt.Sprintf("%s (0x%x)", f.name, f.value)
+			fmt.Fprintf(out, "|%s", center(nameval, linebits*2-1))
+
+			bitOffset += linebits
+			bits -= linebits
+			if linebits == 0x20 {
+				fmt.Fprintln(out, "|")
+				bitOffset = 0
+			}
+		}
+	}
+	fmt.Fprintln(out, "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
+	return out.String()
+}
+
+// Return a multi-line string describing this packet
+//
+// This shows the timestamp, opcode, description, and hex dump.
+// If you set any values, those are displayed in the order they were set.
+//
+// This will quickly get unweildy, especially for large conversations.
+// You are encouraged to implement your own Describe() method.
+func (pkt *Packet) Describe() string {
+	out := new(strings.Builder)
+
+	fmt.Fprintln(out, pkt.DescribeType())
+	fmt.Fprint(out, pkt.DescribeFields())
+	fmt.Fprint(out, pkt.DescribeHeader())
 	fmt.Fprint(out, pkt.Payload.Hexdump())
 	return out.String()
 }
