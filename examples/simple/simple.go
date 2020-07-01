@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/dirtbags/netshovel"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/tcpassembly"
 	"io"
 	"log"
 	"strings"
 	"sync"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/tcpassembly"
-	"github.com/dirtbags/netshovel"
 )
 
 var wg sync.WaitGroup
@@ -45,16 +45,15 @@ func (stream SimpleStream) Display(pkt SimplePacket) {
 
 	fmt.Fprintf(out, "Simple %v:%v → %v:%v\n",
 		stream.Net.Src().String(), stream.Transport.Src().String(),
-    stream.Net.Dst().String(), stream.Transport.Dst().String(),
-  )
-  out.WriteString(pkt.Describe())
-  fmt.Println(out.String())
+		stream.Net.Dst().String(), stream.Transport.Dst().String(),
+	)
+	out.WriteString(pkt.Describe())
+	fmt.Println(out.String())
 }
 
 func (stream SimpleStream) Decode(wg *sync.WaitGroup) {
 	for {
 		pkt := NewSimplePacket()
-		
 
 		utterance, err := stream.Read(-1)
 		if err != nil {
@@ -63,7 +62,7 @@ func (stream SimpleStream) Decode(wg *sync.WaitGroup) {
 			}
 			break
 		}
-		
+
 		pkt.Payload = utterance.Data
 		pkt.When = utterance.When
 		stream.Display(pkt)
