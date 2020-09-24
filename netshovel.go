@@ -10,15 +10,16 @@ package netshovel
 
 import (
 	"flag"
+	"log"
+
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/tcpassembly"
-	"log"
 )
 
-// Mainloop to handle dispatching of PCAP files from command line
-//
+// Shovel handles dispatching of PCAP files from the command line.
+// It's intended that you invoke this from your main function.
 // This parses the command line arguments,
 // and for each PCAP file specified on the command line,
 // invokes a TCP assembler that sends streams to whatever is returned from factory.

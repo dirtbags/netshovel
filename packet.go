@@ -4,12 +4,13 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/dirtbags/netshovel/gapstring"
 	"strings"
 	"time"
+
+	"github.com/dirtbags/netshovel/gapstring"
 )
 
-// Error returned by convenience methods that are unable to get enough data
+// ShortError is returned by convenience methods that are unable to get enough data
 type ShortError struct {
 	Wanted    int // How many bytes you needed
 	Available int // How many bytes were available
@@ -19,7 +20,7 @@ func (e *ShortError) Error() string {
 	return fmt.Sprintf("Short read: wanted %d of %d available", e.Wanted, e.Available)
 }
 
-// Error returned by convenience methods that are unable to operate on gaps in data
+// MissingError is returned by convenience methods that are unable to operate on gaps in data
 type MissingError struct {
 }
 
@@ -58,7 +59,7 @@ type Packet struct {
 
 var never = time.Unix(0, 0)
 
-// Return a new packet
+// NewPacket returns a new packet
 func NewPacket() Packet {
 	return Packet{
 		Opcode:      -1,
@@ -70,7 +71,7 @@ func NewPacket() Packet {
 	}
 }
 
-// Return a string with timestamp, opcode, and description of this packet
+// DescribeType returns a string with timestamp, opcode, and description of this packet
 func (pkt *Packet) DescribeType() string {
 	return fmt.Sprintf(
 		"  %s Opcode %d: %s",
@@ -80,7 +81,7 @@ func (pkt *Packet) DescribeType() string {
 	)
 }
 
-// Return a multi-line string describing fields in this packet
+// DescribeFields returns a multi-line string describing fields in this packet
 func (pkt *Packet) DescribeFields() string {
 	out := new(strings.Builder)
 	for _, f := range pkt.fields {
@@ -96,11 +97,11 @@ func center(s string, w int) string {
 	return fmt.Sprintf("%*s", -w, fmt.Sprintf("%*s", (w+len(s))/2, s))
 }
 
-// Return a multi-line string describing this packet's header structure
+// DescribeHeader returns a multi-line string describing this packet's header structure
 func (pkt *Packet) DescribeHeader() string {
 	out := new(strings.Builder)
 	fmt.Fprintln(out, " 0                               1                            ")
-	fmt.Fprintln(out, " 0 1 2 3 4 5 6 7 8 9 a b c d e f 0 1 2 3 4 5 6 7 8 9 a b c d e f")
+	fmt.Fprintln(out, " mo0 1 2 3 4 5 6 7 8 9 a b c d e f 0 1 2 3 4 5 6 7 8 9 a b c d e f")
 
 	bitOffset := 0
 	for _, f := range pkt.header {
@@ -128,11 +129,14 @@ func (pkt *Packet) DescribeHeader() string {
 			}
 		}
 	}
+	if bitOffset > 0 {
+		fmt.Fprintln(out, "|")
+	}
 	fmt.Fprintln(out, "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
 	return out.String()
 }
 
-// Return a multi-line string describing this packet
+// Describe returns a multi-line string describing this packet
 //
 // This shows the timestamp, opcode, description, and hex dump.
 // If you set any values, those are displayed in the order they were set.
@@ -157,32 +161,32 @@ func (pkt *Packet) Set(key, value string) {
 	pkt.fields = append(pkt.fields, namedField{key, value})
 }
 
-// Set a string value, displaying its Go string representation
+// SetString sets a string value, displaying its Go string representation
 func (pkt *Packet) SetString(key, value string) {
 	pkt.Set(key, fmt.Sprintf("%#v", value))
 }
 
-// Set an int value, displaying its decimal and hexadecimal representations
+// SetInt sets an int value, displaying its decimal and hexadecimal representations
 func (pkt *Packet) SetInt(key string, value int) {
 	pkt.Set(key, fmt.Sprintf("%d == 0x%x", value, value))
 }
 
-// Set an unsigned int value, displaying its decimal and hexadecimal representations
+// SetUint sets an unsigned int value, displaying its decimal and hexadecimal representations
 func (pkt *Packet) SetUint(key string, value uint) {
 	pkt.Set(key, fmt.Sprintf("%d == 0x%x", value, value))
 }
 
-// Set an Unt32 value, displaying its decimal and 0-padded hexadecimal representations
+// SetUint32 sets an Unt32 value, displaying its decimal and 0-padded hexadecimal representations
 func (pkt *Packet) SetUint32(key string, value uint32) {
 	pkt.Set(key, fmt.Sprintf("%d == 0x%04x", value, value))
 }
 
-// Set an []byte value, displaying the hex encoding of the bytes
+// SetBytes sets a []byte value, displaying the hex encoding of the bytes
 func (pkt *Packet) SetBytes(key string, value []byte) {
 	pkt.Set(key, hex.EncodeToString(value))
 }
 
-// Set a GapString value, displaying the hex encoding and runes encoding (like a hex dump)
+// SetGapString sets a GapString value, displaying the hex encoding and runes encoding (like a hex dump)
 func (pkt *Packet) SetGapString(key string, value gapstring.GapString) {
 	pkt.Set(key, fmt.Sprintf("%s  %s", value.HexString(), value.Runes()))
 }
@@ -203,7 +207,7 @@ func (pkt *Packet) Peel(octets int) ([]byte, error) {
 	return b, nil
 }
 
-// Add a field to the header field description
+// AddHeaderField adds a field to the header field description
 func (pkt *Packet) AddHeaderField(order binary.ByteOrder, name string, bits int, value interface{}) {
 	h := headerField{
 		name:  name,
@@ -247,7 +251,7 @@ func (pkt *Packet) readUint(order binary.ByteOrder, bits int, name string) (inte
 	return value, nil
 }
 
-// Peel off a uint64, little-endian
+// Uint64LE peels off a uint64, little-endian
 func (pkt *Packet) Uint64LE(name string) (uint64, error) {
 	value, err := pkt.readUint(binary.LittleEndian, 64, name)
 	if err != nil {
@@ -256,7 +260,7 @@ func (pkt *Packet) Uint64LE(name string) (uint64, error) {
 	return value.(uint64), err
 }
 
-// Peel off a uint32, little-endian
+// Uint32LE peels off a uint32, little-endian
 func (pkt *Packet) Uint32LE(name string) (uint32, error) {
 	value, err := pkt.readUint(binary.LittleEndian, 32, name)
 	if err != nil {
@@ -265,7 +269,7 @@ func (pkt *Packet) Uint32LE(name string) (uint32, error) {
 	return value.(uint32), err
 }
 
-// Peel off a uint16, little-endian
+// Uint16LE peels off a uint16, little-endian
 func (pkt *Packet) Uint16LE(name string) (uint16, error) {
 	value, err := pkt.readUint(binary.LittleEndian, 16, name)
 	if err != nil {
@@ -274,7 +278,7 @@ func (pkt *Packet) Uint16LE(name string) (uint16, error) {
 	return value.(uint16), err
 }
 
-// Peel off a uint64, big-endian
+// Uint64BE peels off a uint64, big-endian
 func (pkt *Packet) Uint64BE(name string) (uint64, error) {
 	value, err := pkt.readUint(binary.BigEndian, 64, name)
 	if err != nil {
@@ -283,7 +287,7 @@ func (pkt *Packet) Uint64BE(name string) (uint64, error) {
 	return value.(uint64), err
 }
 
-// Peel off a uint32, big-endian
+// Uint32BE peels off a uint32, big-endian
 func (pkt *Packet) Uint32BE(name string) (uint32, error) {
 	value, err := pkt.readUint(binary.BigEndian, 32, name)
 	if err != nil {
@@ -292,7 +296,7 @@ func (pkt *Packet) Uint32BE(name string) (uint32, error) {
 	return value.(uint32), err
 }
 
-// Peel off a uint16, big-endian
+// Uint16BE peels off a uint16, big-endian
 func (pkt *Packet) Uint16BE(name string) (uint16, error) {
 	value, err := pkt.readUint(binary.BigEndian, 16, name)
 	if err != nil {
@@ -301,7 +305,7 @@ func (pkt *Packet) Uint16BE(name string) (uint16, error) {
 	return value.(uint16), err
 }
 
-// Peel off a uint8 (aka byte)
+// Uint8 peels off a uint8 (aka byte)
 func (pkt *Packet) Uint8(name string) (uint8, error) {
 	value, err := pkt.readUint(binary.BigEndian, 8, name)
 	if err != nil {

@@ -2,23 +2,24 @@ package netshovel
 
 import (
 	"fmt"
-	"github.com/dirtbags/netshovel/gapstring"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/tcpassembly"
 	"io"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/dirtbags/netshovel/gapstring"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/tcpassembly"
 )
 
-// A File and the path where it lives
+// NamedFile stores a file and the path where it lives
 type NamedFile struct {
 	*os.File
 	Name string
 }
 
-// An atomic communication within a Stream
+// Utterance is an atomic communication within a Stream
 //
 // Streams consist of a string of Utterances.
 // Each utterance has associated data, and a time stamp.
@@ -38,7 +39,7 @@ type Stream struct {
 	pending        Utterance
 }
 
-// Return a newly-built Stream
+// NewStream returns a newly-built Stream
 //
 // You should embed Stream into your own Application protocol stream struct.
 // Use this to initialize the internal stuff netshovel needs.
@@ -50,7 +51,7 @@ func NewStream(net, transport gopacket.Flow) Stream {
 	}
 }
 
-// Called by the TCP assembler when an Utterance can be built
+// Reassembled is called by the TCP assembler when an Utterance can be built
 func (stream *Stream) Reassembled(rs []tcpassembly.Reassembly) {
 	ret := Utterance{
 		When: rs[0].Seen,
@@ -68,7 +69,7 @@ func (stream *Stream) Reassembled(rs []tcpassembly.Reassembly) {
 	}
 }
 
-// Called by the TCP assemble when the Stream is closed
+// ReassemblyComplete is called by the TCP assemble when the Stream is closed
 func (stream *Stream) ReassemblyComplete() {
 	close(stream.conversation)
 }
@@ -137,7 +138,7 @@ func (stream *Stream) Read(length int) (Utterance, error) {
 	return ret, nil
 }
 
-// Return a string description of a packet
+// Describe returns a string description of a packet
 //
 // This just prefixes our source and dest IP:Port to pkt.Describe()
 func (stream *Stream) Describe(pkt Packet) string {
@@ -151,7 +152,7 @@ func (stream *Stream) Describe(pkt Packet) string {
 	return out.String()
 }
 
-// Return a newly-created, truncated file
+// CreateFile returns a newly-created, truncated file
 //
 // This function creates consistently-named files,
 // which include a timestamp,
