@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/dirtbags/netshovel"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/tcpassembly"
 	"io"
 	"log"
 	"strings"
 	"sync"
+
+	"github.com/dirtbags/netshovel"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/tcpassembly"
 )
 
 var wg sync.WaitGroup
@@ -17,7 +18,7 @@ type SimpleStreamFactory struct {
 }
 
 type SimpleStream struct {
-	netshovel.Stream
+	*netshovel.Stream
 }
 
 type SimplePacket struct {

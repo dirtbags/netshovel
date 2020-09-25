@@ -36,7 +36,7 @@ func TestHeaders(t *testing.T) {
 		t.Error("Uint8", fnord)
 	}
 
-	biggun, err := pkt.Uint32LE("biggun")
+	biggun, err := pkt.Uint32BE("biggun")
 	if err != nil {
 		t.Error(err)
 	}

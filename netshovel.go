@@ -31,23 +31,30 @@ func Shovel(factory tcpassembly.StreamFactory) {
 	assembler := tcpassembly.NewAssembler(streamPool)
 
 	for _, fn := range flag.Args() {
-		handle, err := pcap.OpenOffline(fn)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-		packets := packetSource.Packets()
-		for packet := range packets {
-			if packet == nil {
-				break
-			}
-			if packet.NetworkLayer() == nil || packet.TransportLayer() == nil || packet.TransportLayer().LayerType() != layers.LayerTypeTCP {
-				continue
-			}
-			tcp := packet.TransportLayer().(*layers.TCP)
-			assembler.AssembleWithTimestamp(packet.NetworkLayer().NetworkFlow(), tcp, packet.Metadata().Timestamp)
-		}
+		ShovelFile(fn, assembler)
 	}
+
 	assembler.FlushAll()
+}
+
+// ShovelFile shovels a single file.
+// You must call assembler.FlushAll() at the end of this!
+func ShovelFile(filename string, assembler *tcpassembly.Assembler) {
+	handle, err := pcap.OpenOffline(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+	packets := packetSource.Packets()
+	for packet := range packets {
+		if packet == nil {
+			break
+		}
+		if packet.NetworkLayer() == nil || packet.TransportLayer() == nil || packet.TransportLayer().LayerType() != layers.LayerTypeTCP {
+			continue
+		}
+		tcp := packet.TransportLayer().(*layers.TCP)
+		assembler.AssembleWithTimestamp(packet.NetworkLayer().NetworkFlow(), tcp, packet.Metadata().Timestamp)
+	}
 }

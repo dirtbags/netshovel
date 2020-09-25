@@ -43,8 +43,8 @@ type Stream struct {
 //
 // You should embed Stream into your own Application protocol stream struct.
 // Use this to initialize the internal stuff netshovel needs.
-func NewStream(net, transport gopacket.Flow) Stream {
-	return Stream{
+func NewStream(net, transport gopacket.Flow) *Stream {
+	return &Stream{
 		Net:          net,
 		Transport:    transport,
 		conversation: make(chan Utterance, 100),
