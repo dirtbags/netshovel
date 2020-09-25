@@ -91,6 +91,9 @@ func (pkt *Packet) DescribeFields() string {
 }
 
 func center(s string, w int) string {
+	if w < 3 {
+		return "?"
+	}
 	if len(s) > w {
 		s = s[0:w-3] + "…"
 	}
@@ -100,39 +103,54 @@ func center(s string, w int) string {
 // DescribeHeader returns a multi-line string describing this packet's header structure
 func (pkt *Packet) DescribeHeader() string {
 	out := new(strings.Builder)
-	fmt.Fprintln(out, " 0                               1                            ")
-	fmt.Fprintln(out, " mo0 1 2 3 4 5 6 7 8 9 a b c d e f 0 1 2 3 4 5 6 7 8 9 a b c d e f")
+	out.WriteString(" 0                               1\n")
+	out.WriteString(" 0 1 2 3 4 5 6 7 8 9 a b c d e f 0 1 2 3 4 5 6 7 8 9 a b c d e f\n")
+	out.WriteString("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n")
 
 	bitOffset := 0
 	for _, f := range pkt.header {
 		bits := f.bits
 		for bits > 0 {
-			if bitOffset == 0 {
-				fmt.Fprintln(out, "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
-			}
-
 			linebits := bits
 			if linebits+bitOffset > 0x20 {
 				linebits = 0x20 - bitOffset
 			}
 
 			// Generate centered string
-			// TODO: right-align value, center name
-			nameval := fmt.Sprintf("%s (0x%x)", f.name, f.value)
-			fmt.Fprintf(out, "|%s", center(nameval, linebits*2-1))
+			val := fmt.Sprintf("0x%x", f.value)
+			nameval := f.name
+			if f.bits == bits {
+				out.WriteString("|")
+			} else {
+				out.WriteString(" ")
+				val = ""
+				nameval = "..."
+			}
+			out.WriteString(center(nameval, linebits*2-len(val)-2))
+			out.WriteString(val)
+			out.WriteString(" ")
 
 			bitOffset += linebits
 			bits -= linebits
-			if linebits == 0x20 {
-				fmt.Fprintln(out, "|")
+			if bitOffset == 0x20 {
+				if bits == 0 {
+					out.WriteString("|")
+				} else {
+					out.WriteString(" ")
+				}
+				out.WriteString("\n")
+				out.WriteString("+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n")
 				bitOffset = 0
 			}
 		}
 	}
 	if bitOffset > 0 {
-		fmt.Fprintln(out, "|")
+		out.WriteString("|\n")
+		for o := 0; o < bitOffset; o++ {
+			out.WriteString("+-")
+		}
+		out.WriteString("+\n")
 	}
-	fmt.Fprintln(out, "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
 	return out.String()
 }
 
